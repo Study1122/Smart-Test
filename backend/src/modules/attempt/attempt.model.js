@@ -1,0 +1,31 @@
+const mongoose = require("mongoose");
+
+const attemptSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, },
+  testId: 
+    { type: mongoose.Schema.Types.ObjectId, 
+      ref: "Test",
+      require: true
+    },
+  answers: [
+    { 
+      questionId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Question",
+      },
+        
+      selectedOption: Number,
+    }
+  ],
+    
+  startedAt: Date,
+  submittedAt: Date,
+  
+  status: { 
+    type: String, 
+    enum: ["ongoing", "submitted"],
+    default: "ongoing"
+  },
+});
+
+module.exports = mongoose.model("Attempt", attemptSchema);
