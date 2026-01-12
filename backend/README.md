@@ -141,7 +141,15 @@
  ```
 ---
 
-  
+### 🧠 Payment Flow (IMPORTANT)
+  ```
+  Frontend → Create Order (Backend)
+           → Razorpay Checkout
+           → Payment Success
+           → Webhook → Verify Signature
+           → Unlock access
+  ```
+---
 ### Submit Lifecycle
 
   ```
@@ -159,6 +167,23 @@
     
   ```
   
+---
+
+### 📱 Frontend Screen ↔ API Mapping
+
+
+  - ***Screen            API Used***
+
+  -  Login                /auth/login
+  -  Register             /auth/register
+  -  Home                 /exam
+  -  Test List            /test/exam/:id
+  -  Test Screen          /attempt/start, /attempt/save
+  -  Submit               /attempt/submit
+  -  Result               /result/:id/me
+  -  Leaderboard          /result/:id/leaderboard
+  -  Admin Panel          /exam, /question, /test
+
 ---
 
 ### Key Rules

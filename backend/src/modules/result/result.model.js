@@ -13,9 +13,15 @@ const resultSchema = new mongoose.Schema({
   
   accuracy: Number,
   
+  attempted: Number,
+  
   rank: Number,
   
   percentile: Number,
 });
+
+resultSchema.index({ userId: 1, testId: 1 }, { unique: true });
+
+
 
 module.exports = mongoose.model("Result", resultSchema);

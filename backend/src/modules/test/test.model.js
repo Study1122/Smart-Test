@@ -23,7 +23,11 @@ const testSchema = new mongoose.Schema({
     negative: { type: Number, default: 0.25 },
   },
   
-  isFree: Boolean,
+  isFree: {
+    type: Boolean,
+    default: true
+  },
+  
   price: Number,
 });
 

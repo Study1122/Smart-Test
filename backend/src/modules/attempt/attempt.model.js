@@ -18,7 +18,8 @@ const attemptSchema = new mongoose.Schema({
     }
   ],
     
-  startedAt: Date,
+  startedAt: { type: Date, default: Date.now },
+  expiresAt: { type: Date, required: true }, // 🔥 NEW
   submittedAt: Date,
   
   status: { 

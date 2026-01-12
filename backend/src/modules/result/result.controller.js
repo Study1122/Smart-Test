@@ -14,11 +14,15 @@ exports.getMyResult = async (req, res) => {
   res.json(result);
 };
 
+/**
+ * get Leaderboard
+ */
+
 exports.getLeaderboard = async (req, res) => {
   const { testId } = req.params;
 
   const leaderboard = await Result.find({ testId })
-    .sort({ score: -1 })
+    .sort({ rank: 1 })
     .limit(50)
     .populate("userId", "name");
 
