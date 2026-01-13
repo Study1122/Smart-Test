@@ -11,7 +11,7 @@ export default function Login() {
     });
     localStorage.setItem("token", res.data.token);
     alert("Login success");
-    navigate("/exams"); // 🔥 redirect
+    navigate("/admin/exams"); // 🔥 redirect
   };
 
   return (
