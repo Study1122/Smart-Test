@@ -41,13 +41,26 @@ export default function ResultPage() {
           marginTop: "1rem",
         }}
       >
-        <p><strong>Score:</strong> {result.score}</p>
-        <p><strong>Correct:</strong> {result.correct}</p>
-        <p><strong>Wrong:</strong> {result.wrong}</p>
-        <p><strong>Accuracy:</strong> {result.accuracy}%</p>
-        <p><strong>Rank:</strong> {result.rank}</p>
-        <p><strong>Percentile:</strong> {result.percentile}</p>
+        <p><strong>Score: </strong> {result.score}</p>
+        <p><strong>✅Correct: </strong> {result.correct}</p>
+        <p><strong>❌ Wrong: </strong> {result.wrong}</p>
+        <p><strong>⏭️ Not Answered: </strong> {result.notAnswered}</p>
+        <p><strong>🎯 Accuracy: </strong> {result.accuracy}%</p>
+        <p><strong>Rank: </strong> {result.rank}</p>
+        <p><strong>Percentile: </strong> {result.percentile}</p>
       </div>
+      
+      <button 
+        style={{
+          marginTop: "1rem",
+          padding: "0.5rem 1rem",
+          background: "#2563eb",
+          color: "white",
+          borderRadius: "6px",
+        }}
+        onClick={() => navigate(`/analysis/${testId}`)}>
+        📘 View Analysis
+      </button>
 
       <button
         onClick={() => navigate(`/leaderboard/${testId}`)}

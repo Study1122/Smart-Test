@@ -11,7 +11,8 @@ export default function TestList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [attemptStatus, setAttemptStatus] = useState({});
-
+  
+  
   useEffect(() => {
     fetchTests();
   }, [examId]);
@@ -43,6 +44,23 @@ export default function TestList() {
     } finally {
       setLoading(false);
     }
+  };
+  
+  const handleTestClick = async (testId) => {
+    const res = await getAttemptStatus(testId);
+  
+    if (res.data.status === "submitted") {
+      navigate(`/result/${testId}`);   // ✅ FIX
+      return;
+    }
+  
+    if (res.data.status === "ongoing") {
+      navigate(`/attempt/${testId}`);
+      return;
+    }
+  
+    // not_started
+    navigate(`/attempt/${testId}`);
   };
 
   if (loading) return <p>Loading tests...</p>;
@@ -77,30 +95,32 @@ export default function TestList() {
                   </span>
                 )}
               </p>
+              
+              <button 
+                onClick={() => handleTestClick(test._id)}>
+                {attemptStatus[test._id] === "submitted" ? "📊 View Result"
+                  : attemptStatus[test._id] === "ongoing"
+                  ? "🔁 Resume Test"
+                  : "▶️ Start Test"}
+              </button>
 
-              {attemptStatus[test._id] === "ongoing" ? (
-                <button
-                  style={{ marginTop: "0.5rem" }}
-                  onClick={() => navigate(`/attempt/${test._id}`)}
-                >
-                  🔁 Resume Test
+              {/*attemptStatus[test._id] === "ongoing" ? (
+                <button onClick={() => navigate(`/attempt/${test._id}`)}>
+                  Resume Test
                 </button>
               ) : attemptStatus[test._id] === "submitted" ? (
-                <button
-                  style={{ marginTop: "0.5rem" }}
-                  disabled
-                >
-                  ✅ Attempted
+                <button onClick={() => navigate(`/result/${test._id}`)}>
+                  View Result
                 </button>
               ) : (
                 <button
-                  style={{ marginTop: "0.5rem" }}
                   onClick={() => navigate(`/attempt/${test._id}`)}
                   disabled={!test.isFree}
                 >
-                  ▶️ Start Test
+                   Start Test
                 </button>
-              )}
+              )*/}
+              
             </li>
           ))}
         </ul>

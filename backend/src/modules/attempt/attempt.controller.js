@@ -22,7 +22,6 @@ exports.startTest = async (req, res) => {
     return res.status(404).json({ message: "Test not found" });
   }
 
-  // ❌ Block if already submitted
   const submitted = await Attempt.findOne({
     userId,
     testId,
@@ -35,7 +34,6 @@ exports.startTest = async (req, res) => {
     });
   }
 
-  // 🔒 Find ANY existing attempt
   const existingAttempt = await Attempt.findOne({
     userId,
     testId,
@@ -49,51 +47,47 @@ exports.startTest = async (req, res) => {
       });
     }
 
-    const orderedQuestions = existingAttempt.answers
-      .map(a =>
-        test.questions.find(q => q._id.equals(a.questionId))
-      )
-      .filter(Boolean);
+    const answerMap = {};
+    existingAttempt.answers.forEach(a => {
+      answerMap[a.questionId.toString()] = a.selectedOption;
+    });
+
+    const orderedQuestions = test.questions.map(q => ({
+      _id: q._id,
+      question: q.question,
+      options: q.options,
+      selectedOption: answerMap[q._id.toString()] ?? -1,
+    }));
 
     return res.json({
       attemptId: existingAttempt._id,
       duration: test.duration,
       expiresAt: existingAttempt.expiresAt,
-      questions: orderedQuestions.map(q => ({
-        _id: q._id,
-        question: q.question,
-        options: q.options,
-      })),
+      questions: orderedQuestions,
       message: "Resuming previous attempt",
     });
   }
-
 
   const expiresAt = new Date(
     Date.now() + test.duration * 60 * 1000
   );
 
-  // ✅ Create fresh attempt (ONLY ONCE)
-  const shuffledQuestions = shuffle(test.questions);
-  
-  const attempt = await Attempt.findOneAndUpdate(
-    { userId, testId },
-    
-    {
-      $setOnInsert: {
-        userId,
-        testId,
-        status: "ongoing",
-        expiresAt,
-        answers: shuffledQuestions.map(q => ({
-          questionId: q._id,
-          selectedOption: -1,
-        })),
-      },
-    },
-    
-    { new: true, upsert: true }
-  );
+  const questionsArray = test.questions.map(q => q);
+  const shuffledQuestions = shuffle(questionsArray);
+
+  console.log("TEST QUESTIONS:", test.questions.length);
+  console.log("SHUFFLED QUESTIONS:", shuffledQuestions.length);
+
+  const attempt = await Attempt.create({
+    userId,
+    testId,
+    status: "ongoing",
+    expiresAt,
+    answers: shuffledQuestions.map(q => ({
+      questionId: q._id,
+      selectedOption: -1,
+    })),
+  });
 
   return res.json({
     attemptId: attempt._id,

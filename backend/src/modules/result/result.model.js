@@ -15,6 +15,11 @@ const resultSchema = new mongoose.Schema({
   
   attempted: Number,
   
+  notAnswered: {
+    type: Number,
+    default: 0,
+  },
+  
   rank: Number,
   
   percentile: Number,
