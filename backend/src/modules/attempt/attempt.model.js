@@ -24,9 +24,14 @@ const attemptSchema = new mongoose.Schema({
   
   status: { 
     type: String, 
-    enum: ["ongoing", "submitted"],
-    default: "ongoing"
+    enum: ["ongoing", "submitted", "expired"],
+    required: "true"
   },
 });
+
+attemptSchema.index(
+  { userId: 1, testId: 1 },
+  { unique: true }
+);
 
 module.exports = mongoose.model("Attempt", attemptSchema);

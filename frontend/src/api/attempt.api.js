@@ -8,3 +8,6 @@ export const saveAnswer = (data) =>
 
 export const submitTest = (attemptId) =>
   api.post("/attempt/submit", { attemptId });
+  
+export const getAttemptStatus = (testId) =>
+  api.get(`/attempt/status/${testId}`);

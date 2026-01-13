@@ -12,9 +12,12 @@ module.exports = async function calculateRanks(testId) {
       currentRank = i + 1;
     }
 
+    // assign rank
     results[i].rank = currentRank;
+
+    // ✅ USE STORED RANK (NOT imaginary variable)
     results[i].percentile = Math.round(
-      ((total - rank + 1) / total) * 100
+      ((total - results[i].rank + 1) / total) * 100
     );
 
     await results[i].save();

@@ -5,84 +5,100 @@ const shuffle = require("../../utils/shuffleQuestions");
 const calculateScore = require("../../utils/calculateScore");
 const calculateRanks = require("../../utils/rankCalculator");
 
+
+
 /**
  * 📄 START TEST
  */
 exports.startTest = async (req, res) => {
   const { testId } = req.body;
-  const userId = req.userId; // will come from auth later
+  const userId = req.userId;
 
-  const test = await Test.findById(testId).populate("questions", "question options");
-  if (!test) return res.status(404).json({ message: "Test not found" });
-  
-  /*####### Check premium ######*/
-  /*
-  
-  
-  
-  if (!test.isFree) {
-    const paid = await Payment.findOne({
-      userId,
-      testId,
-      status: "paid",
-    });
-  
-    if (!paid) {
-      return res.status(403).json({
-        message: "Please purchase this test",
-      });
-    }
-  }
-  */
-  const now = new Date();
-  const expiresAt = new Date(
-    now.getTime() + test.duration * 60 * 1000
+  const test = await Test.findById(testId).populate(
+    "questions",
+    "question options"
   );
-  
-  /* =============*/
-  const alreadySubmitted = await Attempt.findOne({
+  if (!test) {
+    return res.status(404).json({ message: "Test not found" });
+  }
+
+  // ❌ Block if already submitted
+  const submitted = await Attempt.findOne({
     userId,
     testId,
     status: "submitted",
   });
-  
-  if (alreadySubmitted) {
+
+  if (submitted) {
     return res.status(400).json({
       message: "You have already attempted this test",
     });
   }
 
-  /* =============*/
-  const ongoingAttempt = await Attempt.findOne({
+  // 🔒 Find ANY existing attempt
+  const existingAttempt = await Attempt.findOne({
     userId,
     testId,
-    status: "ongoing",
+    status: { $in: ["ongoing", "expired"] },
   });
-  
-  if (ongoingAttempt) {
+
+  if (existingAttempt) {
+    if (existingAttempt.status === "expired") {
+      return res.status(403).json({
+        message: "Test already expired",
+      });
+    }
+
+    const orderedQuestions = existingAttempt.answers
+      .map(a =>
+        test.questions.find(q => q._id.equals(a.questionId))
+      )
+      .filter(Boolean);
+
     return res.json({
-      attemptId: ongoingAttempt._id,
-      expiresAt: ongoingAttempt.expiresAt,
+      attemptId: existingAttempt._id,
+      duration: test.duration,
+      expiresAt: existingAttempt.expiresAt,
+      questions: orderedQuestions.map(q => ({
+        _id: q._id,
+        question: q.question,
+        options: q.options,
+      })),
       message: "Resuming previous attempt",
     });
   }
 
+
+  const expiresAt = new Date(
+    Date.now() + test.duration * 60 * 1000
+  );
+
+  // ✅ Create fresh attempt (ONLY ONCE)
   const shuffledQuestions = shuffle(test.questions);
+  
+  const attempt = await Attempt.findOneAndUpdate(
+    { userId, testId },
+    
+    {
+      $setOnInsert: {
+        userId,
+        testId,
+        status: "ongoing",
+        expiresAt,
+        answers: shuffledQuestions.map(q => ({
+          questionId: q._id,
+          selectedOption: -1,
+        })),
+      },
+    },
+    
+    { new: true, upsert: true }
+  );
 
-  const attempt = await Attempt.create({
-    userId,
-    testId,
-    expiresAt,
-    answers: shuffledQuestions.map(q => ({
-      questionId: q._id,
-      selectedOption: -1,
-    })),
-  });
-
-  res.json({
+  return res.json({
     attemptId: attempt._id,
     duration: test.duration,
-    expiresAt, // frontend can sync timer
+    expiresAt,
     questions: shuffledQuestions.map(q => ({
       _id: q._id,
       question: q.question,
@@ -132,12 +148,24 @@ exports.submitTest = async (req, res) => {
     return res.status(400).json({ message: "Invalid attempt" });
     
   if (new Date() > attempt.expiresAt) {
-    attempt.status = "expired";
+    const test = await Test.findById(attempt.testId);
+    const resultData = await calculateScore(attempt, test);
+  
+    attempt.status = "submitted";
     attempt.submittedAt = new Date();
     await attempt.save();
-
-    return res.status(403).json({
-      message: "Time over. Test auto-expired",
+  
+    const result = await Result.create({
+      userId: attempt.userId,
+      testId: attempt.testId,
+      ...resultData,
+    });
+  
+    await calculateRanks(attempt.testId);
+  
+    return res.json({
+      message: "Time over. Test auto-submitted",
+      result,
     });
   }
 
@@ -174,4 +202,38 @@ exports.submitTest = async (req, res) => {
     message: "Test submitted",
     result,
   });
+};
+
+/**
+ * 
+ */
+exports.getAttemptStatus = async (req, res) => {
+  const { testId } = req.params;
+  const userId = req.userId;
+
+  const submitted = await Attempt.findOne({
+    userId,
+    testId,
+    status: "submitted",
+  });
+
+  if (submitted) {
+    return res.json({ status: "submitted" });
+  }
+
+  const ongoing = await Attempt.findOne({
+    userId,
+    testId,
+    status: "ongoing",
+  });
+
+  if (ongoing) {
+    return res.json({
+      status: "ongoing",
+      attemptId: ongoing._id,
+      expiresAt: ongoing.expiresAt,
+    });
+  }
+
+  res.json({ status: "not_started" });
 };

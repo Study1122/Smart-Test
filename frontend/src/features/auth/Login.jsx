@@ -1,6 +1,9 @@
 import { login } from "../../api/auth.api";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
+  const navigate = useNavigate();
+  
   const handleLogin = async () => {
     const res = await login({
       email: "prabhu@test.com",
@@ -8,6 +11,7 @@ export default function Login() {
     });
     localStorage.setItem("token", res.data.token);
     alert("Login success");
+    navigate("/exams"); // 🔥 redirect
   };
 
   return (
