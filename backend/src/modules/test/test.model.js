@@ -11,6 +11,19 @@ const testSchema = new mongoose.Schema({
   
   duration: Number, // minutes
   
+  sections: [
+    {
+      name: { type: String, required: true },
+      questions: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Question",
+          required: true,
+        },
+      ],
+    },
+  ],
+  
   questions: [
     { 
       type: mongoose.Schema.Types.ObjectId, 

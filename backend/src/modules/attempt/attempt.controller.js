@@ -8,20 +8,48 @@ const calculateRanks = require("../../utils/rankCalculator");
 
 
 /**
- * 📄 START TEST
+ * 📄 START TEST (SECTION-AWARE)
  */
 exports.startTest = async (req, res) => {
   const { testId } = req.body;
   const userId = req.userId;
 
-  const test = await Test.findById(testId).populate(
-    "questions",
-    "question options"
-  );
+  const test = await Test.findById(testId)
+    .populate("questions", "question options")
+    .populate("sections.questions", "question options");
+
   if (!test) {
     return res.status(404).json({ message: "Test not found" });
   }
 
+  // 🔑 Build unified question list
+  let allQuestions = [];
+
+  if (Array.isArray(test.sections) && test.sections.length > 0) {
+    allQuestions = test.sections.flatMap(section =>
+      section.questions.map(q => ({
+        _id: q._id,
+        question: q.question,
+        options: q.options,
+        section: section.name,
+      }))
+    );
+  } else {
+    allQuestions = test.questions.map(q => ({
+      _id: q._id,
+      question: q.question,
+      options: q.options,
+      section: null,
+    }));
+  }
+
+  if (allQuestions.length === 0) {
+    return res.status(400).json({
+      message: "Test has no questions",
+    });
+  }
+
+  // ❌ Already submitted
   const submitted = await Attempt.findOne({
     userId,
     testId,
@@ -34,14 +62,18 @@ exports.startTest = async (req, res) => {
     });
   }
 
+  // 🔁 Resume attempt
   const existingAttempt = await Attempt.findOne({
     userId,
     testId,
-    status: { $in: ["ongoing", "expired"] },
+    status: "ongoing",
   });
 
   if (existingAttempt) {
-    if (existingAttempt.status === "expired") {
+    if (new Date() > existingAttempt.expiresAt) {
+      existingAttempt.status = "expired";
+      await existingAttempt.save();
+
       return res.status(403).json({
         message: "Test already expired",
       });
@@ -52,10 +84,8 @@ exports.startTest = async (req, res) => {
       answerMap[a.questionId.toString()] = a.selectedOption;
     });
 
-    const orderedQuestions = test.questions.map(q => ({
-      _id: q._id,
-      question: q.question,
-      options: q.options,
+    const orderedQuestions = allQuestions.map(q => ({
+      ...q,
       selectedOption: answerMap[q._id.toString()] ?? -1,
     }));
 
@@ -68,26 +98,41 @@ exports.startTest = async (req, res) => {
     });
   }
 
+  // 🆕 Fresh attempt
   const expiresAt = new Date(
     Date.now() + test.duration * 60 * 1000
   );
 
-  const questionsArray = test.questions.map(q => q);
-  const shuffledQuestions = shuffle(questionsArray);
+  const shuffledQuestions = shuffle(allQuestions);
 
-  console.log("TEST QUESTIONS:", test.questions.length);
-  console.log("SHUFFLED QUESTIONS:", shuffledQuestions.length);
+  //console.log("TOTAL QUESTIONS:", allQuestions.length);
+  //console.log("SHUFFLED QUESTIONS:", shuffledQuestions.length);
 
-  const attempt = await Attempt.create({
-    userId,
-    testId,
-    status: "ongoing",
-    expiresAt,
-    answers: shuffledQuestions.map(q => ({
-      questionId: q._id,
-      selectedOption: -1,
-    })),
-  });
+  if (submitted) {
+    return res.status(400).json({
+      message: "You have already attempted this test",
+    });
+  }
+
+  const attempt = await Attempt.findOneAndUpdate(
+    { userId, testId },
+    {
+      $setOnInsert: {
+        userId,
+        testId,
+        status: "ongoing",
+        expiresAt,
+        answers: shuffledQuestions.map(q => ({
+          questionId: q._id,
+          selectedOption: -1,
+        })),
+      },
+    },
+  {
+    new: true,
+    upsert: true,
+  }
+);
 
   return res.json({
     attemptId: attempt._id,
@@ -97,6 +142,8 @@ exports.startTest = async (req, res) => {
       _id: q._id,
       question: q.question,
       options: q.options,
+      section: q.section, // 🔥 important for frontend later
+      selectedOption: -1,
     })),
   });
 };

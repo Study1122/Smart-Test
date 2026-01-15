@@ -1,4 +1,17 @@
 import api from "./axios";
 
-export const getTestsByExam = (examId) =>
-  api.get(`/test/exam/${examId}`);
+/**
+ * USER / ADMIN
+ * Get tests for an exam
+ */
+export const getTestsByExam = (examId) => {
+  return api.get(`/test/exam/${examId}`);
+};
+
+/**
+ * ADMIN
+ * Create test (supports sections)
+ */
+export const createTest = (data) => {
+  return api.post("/test", data);
+};

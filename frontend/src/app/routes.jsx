@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 
 // ✅ ADMIN
 import ExamAdmin from "../admin/pages/ExamAdmin";
+import TestAdmin from "../admin/pages/TestAdmin";
 import Login from "../features/auth/Login";
 import Register from "../features/auth/Register";
 import ExamList from "../features/exam/ExamList";
@@ -26,6 +27,7 @@ export default function AppRoutes() {
       {/* ADMIN */}
       <Route path="/admin/exams" element={<ExamAdmin />} />
       <Route path="/admin/questions" element={<QuestionAdmin />} />
+      <Route path="/admin/tests/create" element={<TestAdmin />} />
       
       <Route path="/leaderboard/:testId" element={<Leaderboard />} />
       <Route path="/analysis/:testId" element={<ResultAnalysis />} />
